@@ -1,0 +1,88 @@
+##DATASET##
+https://github.com/AlexTheAnalyst/PortfolioProjects/blob/main/CovidDeaths.xlsx
+https://github.com/AlexTheAnalyst/PortfolioProjects/blob/main/CovidVaccinations.xlsx
+
+-- Looking at Total Cases vs Total Deaths
+-- Shows likelihood of dying if you contract covid in your country
+SELECT Location, date, total_cases, total_deaths,  (total_deaths/total_cases)*100 as DeathPercentage
+FROM Covid.CovidDeaths
+Where location like '%Pakistan%'
+ORDER BY 1,2
+
+
+--Looking at Total Cases vs Population
+--Shows what percentage of population got covid
+SELECT Location, date, population, total_cases, (total_deaths/population)*100 as PercentagePopulationInfected
+FROM Covid.CovidDeaths
+Where location like '%Pakistan%'
+ORDER BY 1,2
+
+--Looking at countries with highest infection rate compared to population
+--Shows what percentage of population got covid
+SELECT Location, population, MAX(total_cases) as HighestInfectionCount, MAX(total_cases/population)*100 as HighestInfectionPercentage
+FROM Covid.CovidDeaths
+--Where location like '%Pakistan%'
+GROUP BY location,population
+ORDER BY HighestInfectionPercentage desc
+
+--Showing counttries with highest death count per population
+SELECT Location, MAX(total_deaths)as TotalDeathCount
+FROM Covid.CovidDeaths
+Where continent is not NULL
+GROUP BY location
+ORDER BY TotalDeathCount desc
+
+--Let's Break things down by continent
+SELECT location, MAX(total_deaths)as TotalDeathCount
+FROM Covid.CovidDeaths
+Where continent is not NULL
+GROUP BY location
+ORDER BY TotalDeathCount desc
+
+--Showing continents with the highest death count per population
+SELECT continent, MAX(total_deaths)as TotalDeathCount
+FROM Covid.CovidDeaths
+Where continent is not NULL
+GROUP BY continent
+ORDER BY TotalDeathCount desc
+
+--Gobal Numbers
+SELECT date, SUM(new_cases) as Total_New_Cases, SUM(new_deaths) as Total_New_Deaths, NULLIF(SUM(new_deaths)/SUM(new_cases),0)*100 as NewDeathPercentage
+FROM Covid.CovidDeaths
+Where continent is not NULL
+GROUP BY date
+ORDER BY 1,2
+ 
+
+--Looking at total population vs vacc
+
+SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+FROM Covid.CovidVaccinations as vac
+JOIN Covid.CovidDeaths as dea
+    ON dea.location=vac.location
+    and dea.date=vac.date
+WHERE dea.continent is not NULL
+ORDER BY 2,3
+
+DROP TABLE if exists #PercentPopulationVaccinated
+CREATE Table #PercentPopulationVaccinated]
+(
+    Continent nvarhcar(255),
+    location nvarhcar(255),
+    Date datetime,
+    population numeric,
+    new_vaccinations numeric,
+    RollingPeopleVaccinated numeric
+)
+
+Insert into 
+Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations
+SUM(vac.new_vaccinations) OVER (partition by location ORDER BY dea.location, dea.date) as RollingPeopleVaccinated
+FROM Covid.CovidDeaths as dea
+JOIN Covid.CovidVaccinations as vac
+    ON dea.location=vac.location
+    and dea.date=vac.date
+--WHERE dea.continent is not NULL
+
+Select *, (RollingPeopleVaccinated/population)*100
+From #RollingPeopleVaccinated
